@@ -6,9 +6,11 @@ import pandas as pd
 import featurize
 from pystruct.models import ChainCRF
 from pystruct.learners import FrankWolfeSSVM
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.cross_validation import train_test_split
+from sklearn import cross_validation
 
-#define an argument parser to take the C value as an input argument. C is a hyperparameter that controls how specific you want your model to be without losing the power to generalize.
+#define an argument parser to take the C value as an input argument. C is a hyperparameter that controls how specific you want the model to be without losing the power to generalize.
 def build_arg_parser():
     parser = argparse.ArgumentParser(description='Trains the CRF classifier')
     parser.add_argument("--c-value", dest="c_value", required=False, type=float, default=1.0, help="The C value that will be used for training")
@@ -24,7 +26,7 @@ class CRFTrainer(object):
         if self.classifier_name == 'ChainCRF':
             model = ChainCRF()
         #define the classifier to use with CRF model.
-            self.clf = FrankWolfeSSVM(model=model, C=self.c_value, max_iter=50)
+            self.clf = FrankWolfeSSVM(model=model, C=self.c_value, max_iter=100)
         else:
             raise TypeError('Invalid classifier type')
 
@@ -38,6 +40,7 @@ class CRFTrainer(object):
         featurize.has_number(df)
         featurize.has_slash(df)
         featurize.spacy_pos_tagger(df)
+        featurize.pos_ngrams(df)
         featurize.encoding_labels(df)
         X, y = featurize.get_X_and_y(df)
         return df, X, y
@@ -70,7 +73,15 @@ def decoder(arr):
         prediction.append(labels[i])
     return prediction
 
-
+def convert_y_to_tag(y):
+    '''
+    same as decoder function, but takes all predictions
+    '''
+    map_inverse = {0:'meal',1:'time',2:'food',3:'drink',4:'quantity',5:'unit',6:'comment',7:'other'}
+    predictions = []
+    for pred in y:
+        predictions.append(np.vectorize(map_inverse.get)(pred))
+    return predictions
 
 if __name__ == '__main__':
     #parse the input arguments
@@ -81,7 +92,7 @@ if __name__ == '__main__':
     #load the data:
     df, X, y= crf.load_clean_data()
     #separate data into training and testing datasets:
-    X_train, X_test, y_train, y_test, notes_train, notes_test = train_test_split(X, y, df['notes'], test_size=0.25)
+    X_train, X_test, y_train, y_test, notes_train, notes_test = train_test_split(X, y, df['notes'].values, test_size=0.25)
 
     #train the CRF model:
     print "\nTraining the CRF model..."
@@ -96,3 +107,10 @@ if __name__ == '__main__':
     print "True label =", decoder(y_test[0])
     predicted_output = crf.classify([X_test[0]])
     print "Predicted output =", decoder(predicted_output)
+
+    #train the baseline (Naive Bayes) model:
+    print "\nTraining the baseline NB model..."
+    nmb = MultinomialNB()
+    nmb.fit(np.vstack(X_train), np.hstack(y_train))
+    nb_score = nmb.score(np.vstack(X_test),np.hstack(y_test))
+    print 'Baseline score =', str(round(nb_score*100, 2)) + '%'

@@ -70,6 +70,17 @@ def spacy_pos_tagger(df):
         col_name = 'is_'+tag
         df[col_name] = df['POS'].apply(lambda x: [1 if word == tag else 0 for word in x])
 
+def pos_ngrams(df):
+    '''
+    purpose: feature indicating POS of n (n=1, n=2) words before and after word of interest
+    input: dataframe
+    output: columns in dataframe
+    '''
+    df['POS-'] = df['POS'].apply(lambda x: (['BOS'] + x)[:-1])
+    df['POS--'] = df['POS-'].apply(lambda x: (['BOS'] + x)[:-1])
+    df['POS+'] = df['POS'].apply(lambda x: (x + ['EOS'])[1:])
+    df['POS++'] = df['POS+'].apply(lambda x: (x + ['EOS'])[1:])
+
 def has_slash(df):
     '''
     purpose: feature indicating whether word in food log has a slash
@@ -128,4 +139,5 @@ if __name__ == "__main__":
     has_number(df)
     has_slash(df)
     spacy_pos_tagger(df)
+    pos_ngrams(df)
     encoding_labels(df)
