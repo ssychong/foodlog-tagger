@@ -6,6 +6,7 @@ import string
 from collections import deque
 from spacy.en import English
 
+
 def get_data():
     '''
     purpose: returns pandas dataframe of food logs stored in mongodb
@@ -107,12 +108,24 @@ def get_X_and_y(df):
     y = df['encoded_labels'].values
     return X,y
 
-if __name__ == '__main__':
+# def main():
+#     df = get_data()
+#     split_words(df)
+#     first_letter_uppercase(df)
+#     has_number(df)
+#     has_slash(df)
+#     spacy_pos_tagger(df)
+#     encoding_labels(df)
+#     return df
+#     X, y = get_X_and_y(df)
+#     return X, y
+
+if __name__ == "__main__":
+    # main()
     df = get_data()
     split_words(df)
     first_letter_uppercase(df)
     has_number(df)
-    spacy_pos_tagger(df)
     has_slash(df)
+    spacy_pos_tagger(df)
     encoding_labels(df)
-    X,y = get_X_and_y(df)
