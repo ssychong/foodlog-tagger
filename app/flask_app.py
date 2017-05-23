@@ -11,7 +11,7 @@ import string
 
 app = Flask(__name__)
 
-client = MongoClient() #instantiate a client that will be connected to Mongo
+client = MongoClient() 
 database = client['foodlogs_database'] #create a variable holding a reference to the db you want to connect to
 collection = database['foodlogs_collection']#create a variable to hold the collection you want to connect to
 labels = ['meal','time','food','drink','quantity','unit','comment','other']
@@ -57,7 +57,7 @@ def label():
     return render_template('label.html',text=text,labels=labels)
 
 @app.route("/success",methods=['POST'])
-def meow():
+def success():
     save_to_db(current_record_id, request.form)
     return ''' <a href='/label'>Great job</a>'''
 
