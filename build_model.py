@@ -7,8 +7,7 @@ import featurize
 from pystruct.models import ChainCRF
 from pystruct.learners import FrankWolfeSSVM
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.cross_validation import train_test_split
-from sklearn import cross_validation
+from sklearn.cross_validation import train_test_split, KFold
 
 #define an argument parser to take the C value as an input argument. C is a hyperparameter that controls how specific you want the model to be without losing the power to generalize.
 def build_arg_parser():
@@ -45,6 +44,19 @@ class CRFTrainer(object):
         X, y = featurize.get_X_and_y(df)
         return df, X, y
 
+    def cross_val(self, X_train, y_train):
+        '''
+        method to conduct 5-fold cross validation
+        '''
+        kf = KFold(len(X_train), n_folds=5, random_state=None, shuffle=False)
+        for train_idx, test_idx in kf:
+            xtrain, xval = X_train[train_idx],X_train[test_idx]
+            ytrain, yval = y_train[train_idx], y_train[test_idx]
+            model = ChainCRF()
+            ssvm = FrankWolfeSSVM(model=model,C=0.5,max_iter=15)
+            ssvm.fit(xtrain, ytrain)
+            print  ssvm.score(xval, yval)
+
     def train(self, X_train, y_train):
         '''
         training method
@@ -62,6 +74,7 @@ class CRFTrainer(object):
         method to run the classifier on input data
         '''
         return self.clf.predict(input_data)[0]
+
 
 def decoder(arr):
     '''
@@ -82,6 +95,37 @@ def convert_y_to_tag(y):
     for pred in y:
         predictions.append(np.vectorize(map_inverse.get)(pred))
     return predictions
+
+def actual_foods(df):
+    '''
+    purpose: returns the tokens that I manually labeled as food
+    output: list of lists
+    '''
+    tokens_list = df['tokenized'].values.tolist()
+    labels_list = df['labels'].values.tolist()
+    indices_list = [[i for i, label in enumerate(sublist) if label=='food'] for sublist in labels_list]
+
+    food_list = []
+    for tokens, indices in zip(tokens_list, indices_list):
+        foods = [tokens[i] for i in indices]
+        food_list.append(foods)
+    return food_list
+
+def pred_foods(df, predictions):
+    '''
+    purpose: returns the tokens that the model predicted to be "food"
+    output: list of lists
+    '''
+    tokens_list = df['tokenized'].values.tolist()
+    preds_list = predictions
+    indices_list = [[i for i, label in enumerate(sublist) if label=='food'] for sublist in preds_list]
+
+    food_list = []
+    for tokens, indices in zip(tokens_list, indices_list):
+        foods = [tokens[i] for i in indices]
+        food_list.append(foods)
+    return food_list
+
 
 if __name__ == '__main__':
     #parse the input arguments
